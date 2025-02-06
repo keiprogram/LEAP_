@@ -91,6 +91,50 @@ test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', 
 groups = words_df['Group'].unique()
 selected_group = st.sidebar.selectbox("カテゴリを選択", groups)
 
+# サイドバーで選択された単語範囲を取得
+range_start = st.sidebar.slider("単語範囲（開始）", 0, 1400, 0, step=100)
+range_end = range_start + 100
+filtered_words_df = words_df[(words_df['No.'] >= range_start) & (words_df['No.'] < range_end)]
+
+# 出題問題数のスライダー（範囲内の単語数に基づく上限を設定）
+num_questions = st.sidebar.slider(
+    "出題問題数を選択",
+    1,
+    min(50, len(filtered_words_df)),  # 最大50問または範囲内の単語数の少ない方
+    10
+)
+
+# テスト開始ボタンの処理
+if st.button('テストを開始する'):
+    st.session_state.update({
+        'test_started': True,
+        'correct_answers': 0,
+        'current_question': 0,
+        'finished': False,
+        'wrong_answers': [],
+    })
+
+    # ランダムに問題を選択
+    selected_questions = filtered_words_df.sample(n=num_questions).reset_index(drop=True)
+    st.session_state.update({
+        'selected_questions': selected_questions,
+        'total_questions': len(selected_questions),
+        'current_question_data': selected_questions.iloc[0],
+    })
+
+    # 初回の選択肢を生成
+    if test_type == '英語→日本語':
+        options = list(filtered_words_df['語の意味'].sample(3))
+        options.append(st.session_state.current_question_data['語の意味'])
+    else:
+        options = list(filtered_words_df['単語'].sample(3))
+        options.append(st.session_state.current_question_data['単語'])
+
+    np.random.shuffle(options)
+    st.session_state.options = options
+    st.session_state.answer = None
+
+
 # 単語範囲選択
 ranges = [(i, i + 99) for i in range(0, 1401, 100)]
 range_labels = [f"{start} - {end}" for start, end in ranges]
