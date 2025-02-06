@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # アプリの設定
-st.set_page_config(page_title="Enhanced Leap Basic Vocabulary Test", page_icon='🌟')
+st.set_page_config(page_title="Enhanced Leap Basic Vocabulary Test", page_icon='\ud83c\udf1f')
 
 # カスタムCSSでUIを改善
 st.markdown(
@@ -91,11 +91,19 @@ test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', 
 groups = words_df['Group'].unique()
 selected_group = st.sidebar.selectbox("カテゴリを選択", groups)
 
+# 単語範囲選択
+ranges = [(i, i + 99) for i in range(0, 1401, 100)]
+range_labels = [f"{start} - {end}" for start, end in ranges]
+selected_range_label = st.sidebar.selectbox("単語範囲を選択", range_labels)
+selected_range = ranges[range_labels.index(selected_range_label)]
+
 # 出題問題数の選択
 num_questions = st.sidebar.slider("出題問題数を選択", 10, 50, 10)
 
-# 選択したグループのデータを抽出
-filtered_words_df = words_df[words_df['Group'] == selected_group]
+# 選択した条件に基づくデータを抽出
+filtered_words_df = words_df[(words_df['Group'] == selected_group) &
+                             (words_df['No.'] >= selected_range[0]) &
+                             (words_df['No.'] <= selected_range[1])]
 
 st.title("リープベーシック英単語テスト")
 st.text("リープベーシックから英単語テストができます")
