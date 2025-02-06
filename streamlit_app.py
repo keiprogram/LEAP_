@@ -73,7 +73,7 @@ st.markdown(
 @st.cache_data
 def load_data():
     file_paths = [
-        "リープベーシック見出語・用例リスト(Part 1).xlsx",
+        "リープベーシック見出語・用例リスト(Part 1) - コピー.xlsx",
         "リープベーシック見出語・用例リスト(Part 2).xlsx",
         "リープベーシック見出語・用例リスト(Part 3).xlsx",
         "リープベーシック見出語・用例リスト(Part 4).xlsx",
