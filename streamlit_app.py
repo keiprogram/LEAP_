@@ -93,7 +93,7 @@ num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
 filtered_words_df = words_df[(words_df['No.'] >= selected_range[0]) &
                              (words_df['No.'] <= selected_range[1])]
 
-st.image(English.png)
+st.image("English.png")
 st.title("英単語テスト")
 st.text("英単語テストができます")
 
