@@ -82,6 +82,21 @@ words_df = load_data()
 st.sidebar.title("テスト設定")
 test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', '日本語→英語'], key="test_type")
 
+# サイドバーにリンクボタンを追加
+st.sidebar.markdown(
+    """
+    <div style="text-align: center; margin-top: 20px;">
+        <p>こちらのアプリもお試しください</p>
+        <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" 
+        style="background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+        アプリを試す
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
 # 単語範囲選択
 ranges = [(i, i + 99) for i in range(0, 1401, 100)]
 range_labels = [f"{start} - {end}" for start, end in ranges]
@@ -185,20 +200,7 @@ def display_results():
         st.markdown(df_wrong_answers.to_html(classes='results-table'), unsafe_allow_html=True)
     else:
         st.write("間違えた問題はありません。")
-        # ボタンとして表示するリンク
-st.markdown(
-    """
-    <div style="text-align: center; margin-top: 20px;">
-        <p>こちらのアプリもお試しください</p>
-        <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" 
-        style="background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-        アプリを試す
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
+        
 
 # 問題表示ロジック
 if 'test_started' in st.session_state and not st.session_state.finished:
