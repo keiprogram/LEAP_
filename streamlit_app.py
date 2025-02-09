@@ -60,19 +60,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ボタンとして表示するリンク
-st.markdown(
-    """
-    <div style="text-align: center; margin-top: 20px;">
-        <p>こちらのアプリもお試しください</p>
-        <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" 
-        style="background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-        アプリを試す
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 
 # Excelデータを読み込む関数
@@ -198,6 +185,20 @@ def display_results():
         st.markdown(df_wrong_answers.to_html(classes='results-table'), unsafe_allow_html=True)
     else:
         st.write("間違えた問題はありません。")
+        # ボタンとして表示するリンク
+st.markdown(
+    """
+    <div style="text-align: center; margin-top: 20px;">
+        <p>こちらのアプリもお試しください</p>
+        <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" 
+        style="background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+        アプリを試す
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # 問題表示ロジック
 if 'test_started' in st.session_state and not st.session_state.finished:
