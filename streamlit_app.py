@@ -26,6 +26,7 @@ st.markdown(
     }
     .choices-container button:hover {
         background-color: #495057;
+        color: white;
     }
     .test-container {
         background-color: white;
@@ -51,12 +52,15 @@ st.markdown(
         padding: 8px;
         text-align: center;
     }
+    .stProgress > div > div > div > div {
+        background-color: #6c757d;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# データ読み込み関数
+# Excelデータを読み込む関数
 @st.cache_data
 def load_data():
     file_paths = [
@@ -73,53 +77,63 @@ def load_data():
 words_df = load_data()
 
 # サイドバー設定
-def sidebar_settings():
-    st.sidebar.title("テスト設定")
-    test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', '日本語→英語'], key="test_type")
-    groups = words_df['Group'].unique()
-    selected_group = st.sidebar.selectbox("カテゴリを選択", groups)
+st.sidebar.title("テスト設定")
+test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', '日本語→英語'], key="test_type")
 
-    range_start = st.sidebar.slider("単語範囲（開始）", 0, 1400, 0, step=100)
-    range_end = range_start + 100
+# 単語範囲選択
+ranges = [(i, i + 99) for i in range(0, 1401, 100)]
+range_labels = [f"{start} - {end}" for start, end in ranges]
+selected_range_label = st.sidebar.selectbox("単語範囲を選択", range_labels)
+selected_range = ranges[range_labels.index(selected_range_label)]
 
-    num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
+# 出題問題数の選択
+num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
 
-    return test_type, selected_group, range_start, range_end, num_questions
+# 選択した条件に基づくデータを抽出
+filtered_words_df = words_df[(words_df['No.'] >= selected_range[0]) &
+                             (words_df['No.'] <= selected_range[1])]
 
-def filter_data(selected_group, range_start, range_end):
-    return words_df[(words_df['Group'] == selected_group) &
-                    (words_df['No.'] >= range_start) &
-                    (words_df['No.'] < range_end)]
+st.title("英単語テスト")
+st.text("英単語テストができます")
 
-def initialize_test(filtered_words_df, num_questions, test_type):
-    selected_questions = filtered_words_df.sample(n=min(num_questions, len(filtered_words_df))).reset_index(drop=True)
+# テスト開始ボタン
+if st.button('テストを開始する'):
     st.session_state.update({
         'test_started': True,
         'correct_answers': 0,
         'current_question': 0,
         'finished': False,
         'wrong_answers': [],
-        'selected_questions': selected_questions,
-        'total_questions': len(selected_questions),
-        'current_question_data': selected_questions.iloc[0]
     })
 
-    options = generate_options(selected_questions, test_type, selected_questions.iloc[0])
-    st.session_state.options = options
+    # ランダムに問題を選択
+    selected_questions = filtered_words_df.sample(min(num_questions, len(filtered_words_df))).reset_index(drop=True)
+    st.session_state.update({
+        'selected_questions': selected_questions,
+        'total_questions': len(selected_questions),
+        'current_question_data': selected_questions.iloc[0],
+    })
 
-def generate_options(filtered_words_df, test_type, question_data):
+    # 初回の選択肢を生成
     if test_type == '英語→日本語':
-        options = list(filtered_words_df['語の意味'].sample(3))
-        options.append(question_data['語の意味'])
+        options = list(selected_questions['語の意味'].sample(3))
+        options.append(st.session_state.current_question_data['語の意味'])
     else:
-        options = list(filtered_words_df['単語'].sample(3))
-        options.append(question_data['単語'])
-    np.random.shuffle(options)
-    return options
+        options = list(selected_questions['単語'].sample(3))
+        options.append(st.session_state.current_question_data['単語'])
 
-def update_question(answer, test_type):
-    correct_answer = st.session_state.current_question_data['語の意味'] if test_type == '英語→日本語' else st.session_state.current_question_data['単語']
-    question_word = st.session_state.current_question_data['単語'] if test_type == '英語→日本語' else st.session_state.current_question_data['語の意味']
+    np.random.shuffle(options)
+    st.session_state.options = options
+    st.session_state.answer = None
+
+# 質問を進める関数
+def update_question(answer):
+    if test_type == '英語→日本語':
+        correct_answer = st.session_state.current_question_data['語の意味']
+        question_word = st.session_state.current_question_data['単語']
+    else:
+        correct_answer = st.session_state.current_question_data['単語']
+        question_word = st.session_state.current_question_data['語の意味']
 
     if answer == correct_answer:
         st.session_state.correct_answers += 1
@@ -133,14 +147,19 @@ def update_question(answer, test_type):
     st.session_state.current_question += 1
     if st.session_state.current_question < st.session_state.total_questions:
         st.session_state.current_question_data = st.session_state.selected_questions.iloc[st.session_state.current_question]
-        st.session_state.options = generate_options(
-            st.session_state.selected_questions,
-            test_type,
-            st.session_state.current_question_data
-        )
+        if test_type == '英語→日本語':
+            options = list(st.session_state.selected_questions['語の意味'].sample(3))
+            options.append(st.session_state.current_question_data['語の意味'])
+        else:
+            options = list(st.session_state.selected_questions['単語'].sample(3))
+            options.append(st.session_state.current_question_data['単語'])
+        np.random.shuffle(options)
+        st.session_state.options = options
+        st.session_state.answer = None
     else:
         st.session_state.finished = True
 
+# 結果を表示する関数
 def display_results():
     correct_answers = st.session_state.correct_answers
     total_questions = st.session_state.total_questions
@@ -149,8 +168,12 @@ def display_results():
     st.write(f"テスト終了！正解数: {correct_answers}/{total_questions}")
     st.progress(accuracy)
 
-    st.metric("正解数", correct_answers)
-    st.metric("不正解数", total_questions - correct_answers)
+    st.write("正解数と不正解数")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("正解数", correct_answers)
+    with col2:
+        st.metric("不正解数", total_questions - correct_answers)
 
     st.write(f"正答率: {accuracy:.0%}")
 
@@ -160,25 +183,19 @@ def display_results():
     else:
         st.write("間違えた問題はありません。")
 
-# メイン処理
-def main():
-    test_type, selected_group, range_start, range_end, num_questions = sidebar_settings()
-    filtered_words_df = filter_data(selected_group, range_start, range_end)
+# 問題表示ロジック
+if 'test_started' in st.session_state and not st.session_state.finished:
+    st.subheader(f"問題 {st.session_state.current_question + 1} / {st.session_state.total_questions} (問題番号: {st.session_state.current_question_data['No.']})")
+    st.subheader(f"{st.session_state.current_question_data['単語']}" if test_type == '英語→日本語' else f"{st.session_state.current_question_data['語の意味']}")
 
-    st.title("英単語テスト")
-    if st.button('テストを開始する'):
-        initialize_test(filtered_words_df, num_questions, test_type)
+    # プログレスバーを表示
+    progress = (st.session_state.current_question + 1) / st.session_state.total_questions
+    st.progress(progress)
 
-    if 'test_started' in st.session_state and not st.session_state.finished:
-        question_data = st.session_state.current_question_data
-        st.subheader(f"問題 {st.session_state.current_question + 1} / {st.session_state.total_questions}")
-        st.subheader(f"{question_data['単語']}" if test_type == '英語→日本語' else f"{question_data['語の意味']}")
-
-        for idx, option in enumerate(st.session_state.options):
-            st.button(option, key=f"button_{st.session_state.current_question}_{idx}", on_click=update_question, args=(option, test_type))
-
-    elif 'test_started' in st.session_state and st.session_state.finished:
+    st.markdown('<div class="choices-container">', unsafe_allow_html=True)
+    for idx, option in enumerate(st.session_state.options):
+        st.button(option, key=f"button_{st.session_state.current_question}_{idx}", on_click=update_question, args=(option,))
+    st.markdown('</div>', unsafe_allow_html=True)
+else:
+    if 'test_started' in st.session_state and st.session_state.finished:
         display_results()
-
-if __name__ == "__main__":
-    main()
