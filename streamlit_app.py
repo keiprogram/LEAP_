@@ -82,6 +82,17 @@ words_df = load_data()
 st.sidebar.title("テスト設定")
 test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', '日本語→英語'], key="test_type")
 
+
+
+# 単語範囲選択
+ranges = [(i, i + 99) for i in range(0, 1401, 100)]
+range_labels = [f"{start} - {end}" for start, end in ranges]
+selected_range_label = st.sidebar.selectbox("単語範囲を選択", range_labels)
+selected_range = ranges[range_labels.index(selected_range_label)]
+
+# 出題問題数の選択
+num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
+
 # サイドバーにリンクボタンを追加
 st.sidebar.markdown(
     """
@@ -96,15 +107,6 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-
-# 単語範囲選択
-ranges = [(i, i + 99) for i in range(0, 1401, 100)]
-range_labels = [f"{start} - {end}" for start, end in ranges]
-selected_range_label = st.sidebar.selectbox("単語範囲を選択", range_labels)
-selected_range = ranges[range_labels.index(selected_range_label)]
-
-# 出題問題数の選択
-num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
 
 # 選択した条件に基づくデータを抽出
 filtered_words_df = words_df[(words_df['No.'] >= selected_range[0]) &
