@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # アプリの設定
-st.set_page_config(page_title="Enhanced Basic Vocabulary Test")
+st.set_page_config(page_title="Enhanced Basic Vocabulary Test"page_icon='English Logo.png')
 
 # カスタムCSSでUIを改善
 st.markdown(
@@ -93,7 +93,7 @@ num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
 filtered_words_df = words_df[(words_df['No.'] >= selected_range[0]) &
                              (words_df['No.'] <= selected_range[1])]
 
-st.image(img/English.png) # type: ignore
+st.image(English.png)
 st.title("英単語テスト")
 st.text("英単語テストができます")
 
