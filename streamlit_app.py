@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 
 # アプリ設定
-st.set_page_config(page_title="English Vocabulary Test", page_icon='English Logo.png')
+st.set_page_config(page_title="Enhanced Basic Vocabulary Test", page_icon='English Logo.png')
 
-# カスタムCSS
+# カスタムCSSでUIを改善
 st.markdown(
     """
     <style>
@@ -23,93 +23,115 @@ st.markdown(
 
 # 単語帳選択
 sheet_type = st.sidebar.selectbox(
-    "単語帳を選択", ["リープベーシック", "緑リープ"]
+    "単語帳を選択",
+    ['リープベーシック', '緑リープ']
 )
 
 # データ読み込み関数
 @st.cache_data
 def load_data(sheet_type):
-    if sheet_type == "リープベーシック":
+    if sheet_type == 'リープベーシック':
         file_paths = [
-            "リープベーシック見出語・用例リスト(Part 1).xlsx",
-            "リープベーシック見出語・用例リスト(Part 2).xlsx",
-            "リープベーシック見出語・用例リスト(Part 3).xlsx",
-            "リープベーシック見出語・用例リスト(Part 4).xlsx",
+            'リープベーシック見出語・用例リスト(Part 1).xlsx',
+            'リープベーシック見出語・用例リスト(Part 2).xlsx',
+            'リープベーシック見出語・用例リスト(Part 3).xlsx',
+            'リープベーシック見出語・用例リスト(Part 4).xlsx',
         ]
     else:
         file_paths = [
-            "見出語・用例リスト(Part 1).xlsx",
-            "見出語・用例リスト(Part 2).xlsx",
-            "見出語・用例リスト(Part 3).xlsx",
-            "見出語・用例リスト(Part 4).xlsx",
+            '見出語・用例リスト(Part 1).xlsx',
+            '見出語・用例リスト(Part 2).xlsx',
+            '見出語・用例リスト(Part 3).xlsx',
+            '見出語・用例リスト(Part 4).xlsx',
         ]
-    dfs = [pd.read_excel(fp) for fp in file_paths]
-    df = pd.concat(dfs, ignore_index=True)
-    df.columns = ['Group', 'No.', '単語', 'CEFR', '語の意味', '用例（英語）', '用例（日本語）']
-    return df
+    dfs = []
+    for fp in file_paths:
+        df = pd.read_excel(fp)
+        # 必要な最初の7列だけを使用
+        df = df.iloc[:, :7]
+        df.columns = ['Group', 'No.', '単語', 'CEFR', '語の意味', '用例（英語）', '用例（日本語）']
+        dfs.append(df)
+    return pd.concat(dfs, ignore_index=True)
 
+# データ取得
 words_df = load_data(sheet_type)
 
 # サイドバー設定
 st.sidebar.title("テスト設定")
-test_type = st.sidebar.radio("テスト形式", ['英語→日本語', '日本語→英語'])
+test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', '日本語→英語'])
 
-# 範囲選択
+# 範囲選択 (No.1〜No.100形式)
 max_no = int(words_df['No.'].max())
 ranges = [(i+1, min(i+100, max_no)) for i in range(0, max_no, 100)]
-labels = [f"No.{s}〜No.{e}" for s,e in ranges]
-sel = st.sidebar.selectbox("単語範囲を選択", labels)
-selected_range = ranges[labels.index(sel)]
+labels = [f"No.{s}〜No.{e}" for s, e in ranges]
+selected_label = st.sidebar.selectbox("単語範囲を選択", labels)
+selected_range = ranges[labels.index(selected_label)]
 
-# 出題数
-num_q = st.sidebar.slider("出題数", 1, 50, 10)
+# 出題数選択
+num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
 
-# データ抽出
-filtered = words_df[(words_df['No.']>=selected_range[0]) & (words_df['No.']<=selected_range[1])]
+# リンクボタン
+st.sidebar.markdown(
+    """
+    <div style="text-align:center; margin-top:20px;">
+      <p>こちらのアプリもお試しください</p>
+      <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" style="background-color:#6c757d; color:white; padding:10px 20px; border-radius:5px; text-decoration:none; font-weight:bold;">
+        アプリを試す
+      </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-# メインUI
+# フィルタリング
+filtered = words_df[(words_df['No.'] >= selected_range[0]) & (words_df['No.'] <= selected_range[1])]
+
+# メイン表示
 st.title("英単語テスト")
-st.text("選択した単語帳: {} | 範囲: {} | 問題数: {}".format(sheet_type, sel, num_q))
+st.text(f"単語帳: {sheet_type} | 範囲: {selected_label} | 問題数: {num_questions}")
 
 # テスト開始
-if st.button('テスト開始'):
+if st.button('テストを開始する'):
     st.session_state.started = True
-    st.session_state.questions = filtered.sample(min(num_q, len(filtered))).reset_index(drop=True)
-    st.session_state.idx = 0
+    st.session_state.questions = filtered.sample(n=min(num_questions, len(filtered))).reset_index(drop=True)
+    st.session_state.current = 0
     st.session_state.correct = 0
     st.session_state.wrongs = []
 
-# 回答処理
+# 回答処理関数
 def answer(opt):
-    q = st.session_state.questions.iloc[st.session_state.idx]
-    correct = q['語の意味'] if test_type=='英語→日本語' else q['単語']
-    if opt==correct:
-        st.session_state.correct +=1
+    q = st.session_state.questions.iloc[st.session_state.current]
+    correct = q['語の意味'] if test_type == '英語→日本語' else q['単語']
+    if opt == correct:
+        st.session_state.correct += 1
     else:
         st.session_state.wrongs.append((q['No.'], q['単語'], q['語の意味']))
-    st.session_state.idx +=1
+    st.session_state.current += 1
 
-# テスト進行
-if st.session_state.get('started') and st.session_state.idx < len(st.session_state.questions):
-    q = st.session_state.questions.iloc[st.session_state.idx]
-    prompt = q['単語'] if test_type=='英語→日本語' else q['語の意味']
-    answer_col = '語の意味' if test_type=='英語→日本語' else '単語'
-    pool = filtered[answer_col].drop_duplicates()
-    opts = list(pool.sample(min(3,len(pool)))) + [q[answer_col]]
-    np.random.shuffle(opts)
-    st.subheader(f"問題 {st.session_state.idx+1} / {len(st.session_state.questions)}")
+# テスト進行ロジック
+if st.session_state.get('started') and st.session_state.current < len(st.session_state.questions):
+    q = st.session_state.questions.iloc[st.session_state.current]
+    prompt = q['単語'] if test_type == '英語→日本語' else q['語の意味']
+    ans_col = '語の意味' if test_type == '英語→日本語' else '単語'
+    pool = filtered[ans_col].drop_duplicates()
+    options = list(pool.sample(min(3, len(pool)))) + [q[ans_col]]
+    np.random.shuffle(options)
+
+    st.subheader(f"問題 {st.session_state.current+1} / {len(st.session_state.questions)}")
     st.write(prompt)
-    for o in opts:
-        if st.button(o): answer(o)
+    for opt in options:
+        if st.button(opt):
+            answer(opt)
 
 # 結果表示
 elif st.session_state.get('started'):
     total = len(st.session_state.questions)
-    st.success(f"テスト終了！ {st.session_state.correct}/{total} 正解")
-    st.progress(st.session_state.correct/total)
+    correct = st.session_state.correct
+    st.success(f"テスト終了！ 正解数: {correct}/{total}")
+    st.progress(correct/total)
     if st.session_state.wrongs:
-        df_wrong=pd.DataFrame(st.session_state.wrongs,columns=['No.','単語','語の意味'])
-        st.subheader('間違えた問題')
+        df_wrong = pd.DataFrame(st.session_state.wrongs, columns=['No.', '単語', '語の意味'])
+        st.subheader('間違えた問題一覧')
         st.table(df_wrong)
     else:
         st.write('全問正解！おめでとうございます！')
