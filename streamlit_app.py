@@ -47,14 +47,19 @@ def load_data(sheet_type):
     dfs = []
     for fp in file_paths:
         df = pd.read_excel(fp)
-        df = df.iloc[:, :7]  # 先に最大7列に切り出し
-        actual_cols = df.shape[1]
-        expected_cols = ['Group', 'No.', '単語', 'CEFR', '語の意味', '用例（英語）', '用例（日本語）']
-        df.columns = expected_cols[:actual_cols]  # 実際の列数に合わせてカラム名を調整
+        # 必要な最初の7列だけを使用
+        df = df.iloc[:, :7]
+        df.columns = ['Group', 'No.', '単語', 'CEFR', '語の意味', '用例（英語）', '用例（日本語）']
         dfs.append(df)
     return pd.concat(dfs, ignore_index=True)
+
 # データ取得
 words_df = load_data(sheet_type)
+
+# 'No.'列を数値型に変換し、無効行を除去
+words_df['No.'] = pd.to_numeric(words_df['No.'], errors='coerce')
+words_df = words_df.dropna(subset=['No.'])
+words_df['No.'] = words_df['No.'].astype(int)
 
 # サイドバー設定
 st.sidebar.title("テスト設定")
