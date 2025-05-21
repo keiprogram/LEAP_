@@ -2,214 +2,114 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# アプリの設定
-st.set_page_config(page_title="Enhanced Basic Vocabulary Test", page_icon='English Logo.png')
+# アプリ設定
+st.set_page_config(page_title="English Vocabulary Test", page_icon='English Logo.png')
 
-# カスタムCSSでUIを改善
+# カスタムCSS
 st.markdown(
     """
     <style>
-    body {
-        font-family: 'Arial', sans-serif;
-        background-color: #f5f5f5;
-        color: #333;
-    }
-    .choices-container button {
-        background-color: #6c757d;
-        color: white;
-        border: 2px solid #6c757d;
-        margin: 5px;
-        padding: 10px;
-        border-radius: 5px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .choices-container button:hover {
-        background-color: #495057;
-        color: white;
-    }
-    .test-container {
-        background-color: white;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 20px auto;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .results-table {
-        margin: 20px auto;
-        border-collapse: collapse;
-        width: 100%;
-        background-color: white;
-        color: #333;
-    }
-    .results-table th {
-        background-color: #6c757d;
-        color: white;
-        padding: 10px;
-    }
-    .results-table td {
-        border: 1px solid #6c757d;
-        padding: 8px;
-        text-align: center;
-    }
-    .stProgress > div > div > div > div {
-        background-color: #6c757d;
-    }
+    body { font-family: 'Arial', sans-serif; background-color: #f5f5f5; color: #333; }
+    .choices-container button { background-color: #6c757d; color: white; border: 2px solid #6c757d; margin: 5px; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    .choices-container button:hover { background-color: #495057; }
+    .results-table { margin: 20px auto; border-collapse: collapse; width: 100%; background: white; }
+    .results-table th { background-color: #6c757d; color: white; padding: 10px; }
+    .results-table td { border: 1px solid #6c757d; padding: 8px; text-align: center; }
+    .stProgress > div > div > div > div { background-color: #6c757d; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Excelデータを読み込む関数
-@st.cache_data
-def load_data():
-    file_paths = [
-        "リープベーシック見出語・用例リスト(Part 1).xlsx",
-        "リープベーシック見出語・用例リスト(Part 2).xlsx",
-        "リープベーシック見出語・用例リスト(Part 3).xlsx",
-        "リープベーシック見出語・用例リスト(Part 4).xlsx",
-    ]
-    dataframes = [pd.read_excel(file_path) for file_path in file_paths]
-    combined_df = pd.concat(dataframes, ignore_index=True)
-    combined_df.columns = ['Group', 'No.', '単語', 'CEFR', '語の意味', '用例（英語）', '用例（日本語）']
-    return combined_df
+# 単語帳選択
+sheet_type = st.sidebar.selectbox(
+    "単語帳を選択", ["リープベーシック", "緑リープ"]
+)
 
-words_df = load_data()
+# データ読み込み関数
+@st.cache_data
+def load_data(sheet_type):
+    if sheet_type == "リープベーシック":
+        file_paths = [
+            "リープベーシック見出語・用例リスト(Part 1).xlsx",
+            "リープベーシック見出語・用例リスト(Part 2).xlsx",
+            "リープベーシック見出語・用例リスト(Part 3).xlsx",
+            "リープベーシック見出語・用例リスト(Part 4).xlsx",
+        ]
+    else:
+        file_paths = [
+            "見出語・用例リスト(Part 1).xlsx",
+            "見出語・用例リスト(Part 2).xlsx",
+            "見出語・用例リスト(Part 3).xlsx",
+            "見出語・用例リスト(Part 4).xlsx",
+        ]
+    dfs = [pd.read_excel(fp) for fp in file_paths]
+    df = pd.concat(dfs, ignore_index=True)
+    df.columns = ['Group', 'No.', '単語', 'CEFR', '語の意味', '用例（英語）', '用例（日本語）']
+    return df
+
+words_df = load_data(sheet_type)
 
 # サイドバー設定
 st.sidebar.title("テスト設定")
-test_type = st.sidebar.radio("テスト形式を選択", ['英語→日本語', '日本語→英語'], key="test_type")
+test_type = st.sidebar.radio("テスト形式", ['英語→日本語', '日本語→英語'])
 
-# 単語範囲選択（No.1〜No.100形式）
-ranges = [(i + 1, i + 100) for i in range(0, 1400, 100)]
-range_labels = [f"No.{start}〜No.{end}" for start, end in ranges]
-selected_range_label = st.sidebar.selectbox("単語範囲を選択", range_labels)
-selected_range = ranges[range_labels.index(selected_range_label)]
+# 範囲選択
+max_no = int(words_df['No.'].max())
+ranges = [(i+1, min(i+100, max_no)) for i in range(0, max_no, 100)]
+labels = [f"No.{s}〜No.{e}" for s,e in ranges]
+sel = st.sidebar.selectbox("単語範囲を選択", labels)
+selected_range = ranges[labels.index(sel)]
 
-# 出題問題数の選択
-num_questions = st.sidebar.slider("出題問題数を選択", 1, 50, 10)
+# 出題数
+num_q = st.sidebar.slider("出題数", 1, 50, 10)
 
-# サイドバーにリンクボタンを追加
-st.sidebar.markdown(
-    """
-    <div style="text-align: center; margin-top: 20px;">
-        <p>こちらのアプリもお試しください</p>
-        <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" 
-        style="background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-        アプリを試す
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# データ抽出
+filtered = words_df[(words_df['No.']>=selected_range[0]) & (words_df['No.']<=selected_range[1])]
 
-# 選択した条件に基づくデータを抽出
-filtered_words_df = words_df[(words_df['No.'] >= selected_range[0]) &
-                             (words_df['No.'] <= selected_range[1])]
-
-st.image("English.png")
+# メインUI
 st.title("英単語テスト")
-st.text("英単語テストができます")
+st.text("選択した単語帳: {} | 範囲: {} | 問題数: {}".format(sheet_type, sel, num_q))
 
-# テスト開始ボタン
-if st.button('テストを開始する'):
-    st.session_state.update({
-        'test_started': True,
-        'correct_answers': 0,
-        'current_question': 0,
-        'finished': False,
-        'wrong_answers': [],
-    })
+# テスト開始
+if st.button('テスト開始'):
+    st.session_state.started = True
+    st.session_state.questions = filtered.sample(min(num_q, len(filtered))).reset_index(drop=True)
+    st.session_state.idx = 0
+    st.session_state.correct = 0
+    st.session_state.wrongs = []
 
-    # ランダムに問題を選択
-    selected_questions = filtered_words_df.sample(min(num_questions, len(filtered_words_df))).reset_index(drop=True)
-    st.session_state.update({
-        'selected_questions': selected_questions,
-        'total_questions': len(selected_questions),
-        'current_question_data': selected_questions.iloc[0],
-    })
-
-    # 初回の選択肢を生成
-    if test_type == '英語→日本語':
-        options = list(selected_questions['語の意味'].sample(3))
-        options.append(st.session_state.current_question_data['語の意味'])
+# 回答処理
+def answer(opt):
+    q = st.session_state.questions.iloc[st.session_state.idx]
+    correct = q['語の意味'] if test_type=='英語→日本語' else q['単語']
+    if opt==correct:
+        st.session_state.correct +=1
     else:
-        options = list(selected_questions['単語'].sample(3))
-        options.append(st.session_state.current_question_data['単語'])
+        st.session_state.wrongs.append((q['No.'], q['単語'], q['語の意味']))
+    st.session_state.idx +=1
 
-    np.random.shuffle(options)
-    st.session_state.options = options
-    st.session_state.answer = None
+# テスト進行
+if st.session_state.get('started') and st.session_state.idx < len(st.session_state.questions):
+    q = st.session_state.questions.iloc[st.session_state.idx]
+    prompt = q['単語'] if test_type=='英語→日本語' else q['語の意味']
+    answer_col = '語の意味' if test_type=='英語→日本語' else '単語'
+    pool = filtered[answer_col].drop_duplicates()
+    opts = list(pool.sample(min(3,len(pool)))) + [q[answer_col]]
+    np.random.shuffle(opts)
+    st.subheader(f"問題 {st.session_state.idx+1} / {len(st.session_state.questions)}")
+    st.write(prompt)
+    for o in opts:
+        if st.button(o): answer(o)
 
-# 質問を進める関数
-def update_question(answer):
-    if test_type == '英語→日本語':
-        correct_answer = st.session_state.current_question_data['語の意味']
-        question_word = st.session_state.current_question_data['単語']
+# 結果表示
+elif st.session_state.get('started'):
+    total = len(st.session_state.questions)
+    st.success(f"テスト終了！ {st.session_state.correct}/{total} 正解")
+    st.progress(st.session_state.correct/total)
+    if st.session_state.wrongs:
+        df_wrong=pd.DataFrame(st.session_state.wrongs,columns=['No.','単語','語の意味'])
+        st.subheader('間違えた問題')
+        st.table(df_wrong)
     else:
-        correct_answer = st.session_state.current_question_data['単語']
-        question_word = st.session_state.current_question_data['語の意味']
-
-    if answer == correct_answer:
-        st.session_state.correct_answers += 1
-    else:
-        st.session_state.wrong_answers.append(( 
-            st.session_state.current_question_data['No.'],
-            question_word,
-            correct_answer
-        ))
-
-    st.session_state.current_question += 1
-    if st.session_state.current_question < st.session_state.total_questions:
-        st.session_state.current_question_data = st.session_state.selected_questions.iloc[st.session_state.current_question]
-        if test_type == '英語→日本語':
-            options = list(st.session_state.selected_questions['語の意味'].sample(3))
-            options.append(st.session_state.current_question_data['語の意味'])
-        else:
-            options = list(st.session_state.selected_questions['単語'].sample(3))
-            options.append(st.session_state.current_question_data['単語'])
-        np.random.shuffle(options)
-        st.session_state.options = options
-        st.session_state.answer = None
-    else:
-        st.session_state.finished = True
-
-# 結果を表示する関数
-def display_results():
-    correct_answers = st.session_state.correct_answers
-    total_questions = st.session_state.total_questions
-    accuracy = correct_answers / total_questions
-
-    st.write(f"テスト終了！正解数: {correct_answers}/{total_questions}")
-    st.progress(accuracy)
-
-    st.write("正解数と不正解数")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("正解数", correct_answers)
-    with col2:
-        st.metric("不正解数", total_questions - correct_answers)
-
-    st.write(f"正答率: {accuracy:.0%}")
-
-    if st.session_state.wrong_answers:
-        df_wrong_answers = pd.DataFrame(st.session_state.wrong_answers, columns=["問題番号", "単語", "語の意味"])
-        st.markdown(df_wrong_answers.to_html(classes='results-table'), unsafe_allow_html=True)
-    else:
-        st.write("間違えた問題はありません。")
-
-# 問題表示ロジック
-if 'test_started' in st.session_state and not st.session_state.finished:
-    st.subheader(f"問題 {st.session_state.current_question + 1} / {st.session_state.total_questions} (問題番号: {st.session_state.current_question_data['No.']})")
-    st.subheader(f"{st.session_state.current_question_data['単語']}" if test_type == '英語→日本語' else f"{st.session_state.current_question_data['語の意味']}")
-
-    progress = (st.session_state.current_question + 1) / st.session_state.total_questions
-    st.progress(progress)
-
-    st.markdown('<div class="choices-container">', unsafe_allow_html=True)
-    for idx, option in enumerate(st.session_state.options):
-        st.button(option, key=f"button_{st.session_state.current_question}_{idx}", on_click=update_question, args=(option,))
-    st.markdown('</div>', unsafe_allow_html=True)
-else:
-    if 'test_started' in st.session_state and st.session_state.finished:
-        display_results()
+        st.write('全問正解！おめでとうございます！')
