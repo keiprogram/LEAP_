@@ -96,7 +96,7 @@ st.sidebar.markdown(
         <p>こちらのアプリもお試しください</p>
         <a href="https://sisutann-f5r6e9hvuz3ubw5umd6m4i.streamlit.app/" target="_blank" 
         style="background-color: #6c757d; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold;">
-        アプリを試す
+        緑ープテストアプリを試す
         </a>
     </div>
     """,
