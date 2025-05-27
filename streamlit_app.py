@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 # アプリの設定
-st.set_page_config(page_title="Enhanced Basic Vocabulary Test", page_icon='English Logo.png')
+st.set_page_config(page_title="LEAP Basic英単語テスト", page_icon='English Logo.png')
 
 # カスタムCSSでUIを改善
 st.markdown(
