@@ -108,7 +108,7 @@ filtered_words_df = words_df[(words_df['No.'] >= selected_range[0]) &
                              (words_df['No.'] <= selected_range[1])]
 
 st.image("English.png")
-st.title("英単語テスト")
+st.title("LEAP Basic英単語テスト")
 st.text("英単語テストができます")
 
 # テスト開始ボタン
